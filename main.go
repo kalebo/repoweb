@@ -1,17 +1,47 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
+
+	"github.com/BurntSushi/toml"
 )
+
+type website struct {
+	Name     string
+	Worktree string
+	Gitdir   string
+	Token    string
+}
+
+type configuration struct {
+	Website []website
+}
+
+var conf configuration
 
 func init() {
 	// read in config file
-	// 		each entry should have
-	// 			* project name
-	// 			* GIT_WORK_DIR
-	// 			* GIT_REPO_DIR
-	// 			* Token
-	// 			* Build information
+	b, err := ioutil.ReadFile("config.toml")
+	if err != nil {
+		log.Fatal(err)
+	}
+	blob := string(b)
+
+	// parse toml
+	if _, err := toml.Decode(blob, &conf); err != nil {
+		log.Fatal(err)
+	}
+
+	// print out loaded websites
+	for _, site := range conf.Website {
+		fmt.Printf("loaded %s\n", site.Name)
+	}
+
+	// put websites into hashmap
+
 }
 
 func main() {

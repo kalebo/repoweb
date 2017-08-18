@@ -1,0 +1,5 @@
+[[website]]
+name = "my-fancy-git-website"
+worktree = "/srv/fancy"
+gitdir = "/home/git/fancy-website.git"
+token = "jJwixrBLuBfpZegsZYoNRKFvRd9HTzfDGQic3J8WO5XoNeXqyllT4CBKqyt5EWJe"
