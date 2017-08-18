@@ -95,7 +95,7 @@ func updateRepo(gitDir string, workTree string) {
 	// set work and repo directory enviroment vars
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("GIT_DIR=%s", gitDir))
-	env = append(env, fmt.Sprintf("GIT_WORK_DIR=%s", workTree))
+	env = append(env, fmt.Sprintf("GIT_WORK_TREE=%s", workTree))
 
 	// TODO: consider setting a tmp work directory
 
