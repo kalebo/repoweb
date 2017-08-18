@@ -1,12 +1,16 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+	"os"
+	"os/exec"
+	"regexp"
 
 	"github.com/BurntSushi/toml"
+	"github.com/golang/glog"
 )
 
 type website struct {
@@ -21,54 +25,98 @@ type configuration struct {
 }
 
 var conf configuration
+var websitemap map[string]*website
+var updateHookRe = regexp.MustCompile("^/update/([a-zA-Z0-9-]*)/*$")
 
 func init() {
+	flag.Parse()
+
 	// read in config file
 	b, err := ioutil.ReadFile("config.toml")
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 	blob := string(b)
 
 	// parse toml
 	if _, err := toml.Decode(blob, &conf); err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 	}
 
-	// print out loaded websites
+	// put websites into hashmap for quick lookup
+	websitemap = make(map[string]*website)
 	for _, site := range conf.Website {
-		fmt.Printf("loaded %s\n", site.Name)
+		websitemap[site.Name] = &site
+		glog.Infof("Loaded %s\n", site.Name)
 	}
-
-	// put websites into hashmap
 
 }
 
 func main() {
-	http.HandleFunc("/", incomingHook)
-
+	http.HandleFunc("/update/", incomingHook)
 	http.ListenAndServe(":8989", nil)
+	fmt.Println(websitemap)
 }
 
-func incomingHook(rw http.ResponseWriter, r *http.Request) {
+func incomingHook(w http.ResponseWriter, r *http.Request) {
+	// check if request uri is valid
+	captures := updateHookRe.FindStringSubmatch(r.URL.Path)
+	if len(captures) != 2 {
+		glog.Error("Invalid URI:", r.URL.Path)
+		http.Error(w, http.StatusText(404), 404)
+		return
+	}
+	sitename := captures[1]
+
 	// check if request is for a known repository
+	if site, ok := websitemap[sitename]; ok {
+		// retrives the information for the repository
+		glog.Infof("Found site %s at %s", site.Name, site.Gitdir)
 
-	// retrives the information for the repository
+		// check if X-Gitlab-Token token matches
+		if token := r.Header.Get("X-Gitlab-Token"); token != site.Token {
+			glog.Infof("Token verification failed for %s", site.Name)
+			http.Error(w, http.StatusText(403), 403)
+		} else {
+			glog.Infof("Token verified for %s", site.Name)
+		}
 
-	// check if X-Gitlab-Token token matches
+		// call procedure to update repo
+		updateRepo(site.Gitdir, site.Worktree)
 
-	// call procedure to update repo
+	} else {
+		http.Error(w, http.StatusText(404), 404)
+		glog.Error("No such site:", sitename)
+		return
+	}
 }
 
-func updateRepo(workDir string, repoDir string) {
+func updateRepo(gitDir string, workTree string) {
 	// set work and repo directory enviroment vars
+	env := os.Environ()
+	env = append(env, fmt.Sprintf("GIT_DIR=%s", gitDir))
+	env = append(env, fmt.Sprintf("GIT_WORK_DIR=%s", workTree))
 
-	// set tmp work directory
+	// TODO: consider setting a tmp work directory
 
 	// Git pull and checkout -f and potentially LFS commands
 	// N.B., that git must have a ssh key
+	pullCmd := exec.Command("git", "pull")
+	checkoutCmd := exec.Command("git", "checkout -f")
 
-	// run any post pull scripts in restricted shell or chroot
+	pullCmd.Env = env
+	checkoutCmd.Env = env
 
-	// Do atomic mv to switch tmp work directory and live work dir
+	if err := pullCmd.Run(); err != nil {
+		glog.Errorf("Error running `git pull` for %s; skipping checkout", gitDir)
+		return
+	}
+
+	if err := checkoutCmd.Run(); err != nil {
+		glog.Error("Error running `git checkout -f` ", gitDir)
+	}
+
+	// TODO: run any post pull scripts in restricted shell or chroot?
+
+	// TODO: consider doing an atomic mv to switch tmp work directory and live work dir
 }
