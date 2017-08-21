@@ -33,7 +33,7 @@ Finally you must add the webhook to github. It will be of the form `http://<serv
 
 You may also want to add a system service to start repoweb as the desired user automatically on boot.
 
-# Roadmap
+## Roadmap
 
- [] `git pull` to a directory outside of the webroot and then use `mv` to atomically switch to the new version
- [] Enable running post-pull scripts to run inside of a chroot or restricted shell
+  - [ ] `git pull` to a directory outside of the webroot and then use `mv` to atomically switch to the new version
+  - [ ] Enable running post-pull scripts to run inside of a chroot or restricted shell
