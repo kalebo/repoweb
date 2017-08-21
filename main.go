@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -82,8 +83,8 @@ func incomingHook(w http.ResponseWriter, r *http.Request) {
 		glog.Infof("Token verified for %s", site.Name)
 
 		// call procedure to update repo
-		if result := updateRepo(site.Gitdir, site.Worktree); result == false {
-			http.Error(w, "Cannot update site", 409)
+		if err := updateRepo(site.Gitdir, site.Worktree); err != nil {
+			http.Error(w, fmt.Sprintf("Conflict: %s", err), 409)
 			return
 		}
 
@@ -94,7 +95,7 @@ func incomingHook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updateRepo(gitDir string, workTree string) bool {
+func updateRepo(gitDir string, workTree string) error {
 	// set work and repo directory enviroment vars
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("GIT_DIR=%s", gitDir))
@@ -104,24 +105,34 @@ func updateRepo(gitDir string, workTree string) bool {
 
 	// Git pull and checkout -f and potentially LFS commands
 	// N.B., that git must have a ssh key
+	statusCmd := exec.Command("git", "status", "-s")
 	pullCmd := exec.Command("git", "fetch")
-	checkoutCmd := exec.Command("git", "checkout -f master")
+	checkoutCmd := exec.Command("git", "checkout", "-f", "master")
 
+	statusCmd.Env = env
 	pullCmd.Env = env
 	checkoutCmd.Env = env
 
-	if output, err := pullCmd.CombinedOutput(); err != nil {
-		glog.Errorf("Error running `git fetch` for %s: %s", gitDir, output)
-		return false
+	// Check if there are unstaged changes or untracked files
+	if output, _ := statusCmd.CombinedOutput(); len(output) > 1 {
+		glog.Errorf("Work tree is not clean: %s", workTree)
+		return errors.New("Work tree not clean")
 	}
 
+	// Fetch changes from up stream
+	if output, err := pullCmd.CombinedOutput(); err != nil {
+		glog.Errorf("Error running `git fetch` for %s: %s", gitDir, output)
+		return errors.New("fetching repo failed")
+	}
+
+	// Checkout master
 	if output, err := checkoutCmd.CombinedOutput(); err != nil {
-		glog.Errorf("Error running `git checkout -f master` for %s: %s", workTree, output)
-		return false
+		glog.Errorf("Error running `git checkout -f master` for %s in %s: %s", gitDir, workTree, output)
+		return errors.New("checkout failed")
 	}
 
 	// TODO: run any post pull scripts in restricted shell or chroot?
 
-	// TODO: consider doing an atomic mv to switch tmp work directory and live work dir
-	return true
+	// TODO: consider doin an atomic mv to switch tmp work directory and live work dir
+	return nil
 }
