@@ -77,9 +77,9 @@ func incomingHook(w http.ResponseWriter, r *http.Request) {
 		if token := r.Header.Get("X-Gitlab-Token"); token != site.Token {
 			glog.Infof("Token verification failed for %s", site.Name)
 			http.Error(w, http.StatusText(403), 403)
-		} else {
-			glog.Infof("Token verified for %s", site.Name)
+			return
 		}
+		glog.Infof("Token verified for %s", site.Name)
 
 		// call procedure to update repo
 		updateRepo(site.Gitdir, site.Worktree)
