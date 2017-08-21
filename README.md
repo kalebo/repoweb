@@ -28,7 +28,7 @@ You may add as many `[[website]]` blocks to `config.toml` as you want.
 
 ### Configuration Details 
 
-The recomended setup is to have a working tree seprate from your gitdir stored to avoid leaking the contents of `.git` to the web. You can do this easily by cloning the bare repository with `git clone --bare http://<gitlabserver>/<user>/<my-site>.git <my-site>.git` this cloned path is what you will specify for `gitdir`
+The recomended setup is to have a working tree seprate from your gitdir stored to avoid leaking the contents of `.git` to the web. You can do this easily by cloning the bare repository with `git clone --bare http://<gitlabserver>/<user>/<my-site>.git <my-site>.git` this cloned path is what you will specify for `gitdir`. Please note that any changes you make in the work tree will be overwritten unless upon the next update so make sure that you do not edit the work tree directly.
 
 You must also ensure that the user that runs repoweb has a ssh key that corresponds to a user on gitlab with at least read access to the remote repository. Instructions for setting up
 an ssh key for a user can easily be found by googling.

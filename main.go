@@ -82,7 +82,10 @@ func incomingHook(w http.ResponseWriter, r *http.Request) {
 		glog.Infof("Token verified for %s", site.Name)
 
 		// call procedure to update repo
-		updateRepo(site.Gitdir, site.Worktree)
+		if result := updateRepo(site.Gitdir, site.Worktree); result == false {
+			http.Error(w, "Cannot update site", 409)
+			return
+		}
 
 	} else {
 		http.Error(w, http.StatusText(404), 404)
@@ -91,7 +94,7 @@ func incomingHook(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func updateRepo(gitDir string, workTree string) {
+func updateRepo(gitDir string, workTree string) bool {
 	// set work and repo directory enviroment vars
 	env := os.Environ()
 	env = append(env, fmt.Sprintf("GIT_DIR=%s", gitDir))
@@ -101,22 +104,24 @@ func updateRepo(gitDir string, workTree string) {
 
 	// Git pull and checkout -f and potentially LFS commands
 	// N.B., that git must have a ssh key
-	pullCmd := exec.Command("git", "pull")
-	checkoutCmd := exec.Command("git", "checkout -f")
+	pullCmd := exec.Command("git", "fetch")
+	checkoutCmd := exec.Command("git", "checkout -f master")
 
 	pullCmd.Env = env
 	checkoutCmd.Env = env
 
 	if output, err := pullCmd.CombinedOutput(); err != nil {
-		glog.Errorf("Error running `git pull` for %s: %s", gitDir, output)
-		return
+		glog.Errorf("Error running `git fetch` for %s: %s", gitDir, output)
+		return false
 	}
 
 	if output, err := checkoutCmd.CombinedOutput(); err != nil {
-		glog.Errorf("Error running `git checkout -f` for %s: %s", workTree, output)
+		glog.Errorf("Error running `git checkout -f master` for %s: %s", workTree, output)
+		return false
 	}
 
 	// TODO: run any post pull scripts in restricted shell or chroot?
 
 	// TODO: consider doing an atomic mv to switch tmp work directory and live work dir
+	return true
 }
