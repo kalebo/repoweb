@@ -107,13 +107,13 @@ func updateRepo(gitDir string, workTree string) {
 	pullCmd.Env = env
 	checkoutCmd.Env = env
 
-	if err := pullCmd.Run(); err != nil {
-		glog.Errorf("Error running `git pull` for %s; skipping checkout", gitDir)
+	if output, err := pullCmd.CombinedOutput(); err != nil {
+		glog.Errorf("Error running `git pull` for %s: %s", gitDir, output)
 		return
 	}
 
-	if err := checkoutCmd.Run(); err != nil {
-		glog.Error("Error running `git checkout -f` ", gitDir)
+	if output, err := checkoutCmd.CombinedOutput(); err != nil {
+		glog.Errorf("Error running `git checkout -f` for %s: %s", workTree, output)
 	}
 
 	// TODO: run any post pull scripts in restricted shell or chroot?
