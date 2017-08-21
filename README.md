@@ -24,6 +24,10 @@ token = "jJwixrBLuBfpZegsZYoNRKFvRd9HTzfDGQic3J8WO5XoNeXqyllT4CBKqyt5EWJe"
  * `gitdir` is the location of the bare git directory for the repository. It should also be writable.
  * `token` is checked against the `X-Gitlab-Token` sent in the hook request headers to verify that the request is legitimate.
 
+You may add as many `[[website]]` blocks to `config.toml` as you want.
+
+### Configuration Details 
+
 The recomended setup is to have a working tree seprate from your gitdir stored to avoid leaking the contents of `.git` to the web. You can do this easily by cloning the bare repository with `git clone --bare http://<gitlabserver>/<user>/<my-site>.git <my-site>.git` this cloned path is what you will specify for `gitdir`
 
 You must also ensure that the user that runs repoweb has a ssh key that corresponds to a user on gitlab with at least read access to the remote repository. Instructions for setting up
