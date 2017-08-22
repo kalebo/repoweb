@@ -107,7 +107,7 @@ func updateRepo(gitDir string, workTree string) error {
 	// N.B., that git must have a ssh key
 	statusCmd := exec.Command("git", "status", "-s")
 	pullCmd := exec.Command("git", "fetch")
-	checkoutCmd := exec.Command("git", "checkout", "-f", "master")
+	checkoutCmd := exec.Command("git", "reset", "--hard", "origin/master")
 
 	statusCmd.Env = env
 	pullCmd.Env = env
@@ -127,7 +127,7 @@ func updateRepo(gitDir string, workTree string) error {
 
 	// Checkout master
 	if output, err := checkoutCmd.CombinedOutput(); err != nil {
-		glog.Errorf("Error running `git checkout -f master` for %s in %s: %s", gitDir, workTree, output)
+		glog.Errorf("Error running `git reset --hard origin/master` for %s in %s: %s", gitDir, workTree, output)
 		return errors.New("checkout failed")
 	}
 
