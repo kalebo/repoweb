@@ -37,8 +37,12 @@ Finally you must add the webhook to github. It will be of the form `http://<serv
 
 You may also want to add a system service to start repoweb as the desired user automatically on boot.
 
+## Build
+You may simply run `go build`; however to crosscompile and optimize the resulting size of the binaries you will need to download [upx](https://upx.github.io/) and place it in the root of the repository and then run `make -j 2`.
+
 ## Roadmap
 
   - [ ] `git pull` to a directory outside of the webroot and then use `mv` to atomically switch to the new version
   - [ ] Enable running post-pull scripts to run inside of a chroot or restricted shell
-  - [ ] Support git lfs
+  - [ ] Support git lfs?
+  - [ ] Track custom branches
