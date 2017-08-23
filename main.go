@@ -87,6 +87,7 @@ func incomingHook(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("Conflict: %s", err), 409)
 			return
 		}
+		glog.Infof("Updated work tree in %s", site.Worktree)
 
 	} else {
 		http.Error(w, http.StatusText(404), 404)
